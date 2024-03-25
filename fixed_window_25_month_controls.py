@@ -32,7 +32,7 @@ def analyze_outliers_fixed_window(df, detail_cols, date_col, feature_col, contro
 
     # Assign a unique window ID based on concatenation of window start and detail columns
     # This is a simplistic approach and might need customization for more complex scenarios
-    analysis_date = date_format(current_timestamp(), "yyyy-MM-dd")
+    analysis_date = F.date_format(F.current_timestamp(), "yyyy-MM-dd")
     concat_cols = F.concat_ws("|", lit(analysis_date), *map(lambda cols:   F.col(cols),detail_cols))
     df = df.withColumn("window_id", concat_cols)
 
