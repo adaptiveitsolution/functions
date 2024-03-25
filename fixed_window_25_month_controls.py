@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession, Window
 from pyspark.sql.functions import col, lit, mean, stddev, when, first
 
-def analyze_outliers_fixed_window(df, detail_cols, date_col, feature_col):
+def analyze_outliers_fixed_window(df, detail_cols, date_col, feature_col, control_limit):
     """
     Analyzes outliers in a feature column of a Spark DataFrame over fixed 25-month windows,
     grouped by specified detail columns. Unlike a rolling window, this function calculates
@@ -13,6 +13,7 @@ def analyze_outliers_fixed_window(df, detail_cols, date_col, feature_col):
     - detail_cols (list): List of column names to group by for the analysis (e.g., ['location', 'type', 'form']).
     - date_col (str): Name of the column containing the date. Assumes data is sorted by this column if necessary.
     - feature_col (str): Name of the column containing the feature to analyze for outliers.
+    - control_limit (float): Scale value multiplied by standard deviation for threshold of outlier.
 
     Returns:
     - DataFrame: The input DataFrame augmented with a '25_month_control_analysis' column indicating
@@ -42,8 +43,8 @@ def analyze_outliers_fixed_window(df, detail_cols, date_col, feature_col):
 
     # Define bounds for outliers: values outside fixed_mean ± 1.5 * fixed_stddev are considered outliers
     df = df.withColumn('is_outlier', when(
-        (col(feature_col) < (col('fixed_mean') - 1.5 * col('fixed_stddev'))) | 
-        (col(feature_col) > (col('fixed_mean') + 1.5 * col('fixed_stddev'))), lit(True)).otherwise(lit(False)))
+        (col(feature_col) < (col('fixed_mean') - control_limit * col('fixed_stddev'))) | 
+        (col(feature_col) > (col('fixed_mean') + control_limit * col('fixed_stddev'))), lit(True)).otherwise(lit(False)))
 
     # Adding a column "25_month_control_analysis" to mark outliers within the control
     df = df.withColumn('25_month_control_analysis', when(col('is_outlier') == True, 'Outlier').otherwise('Normal'))
